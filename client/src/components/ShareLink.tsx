@@ -44,7 +44,7 @@ const ShareLink: React.FC = () => {
       binaryArray[i] = binaryContent.charCodeAt(i);
     }
   
-    const blob = new Blob([binaryArray], { type: 'application/pdf' }); // Adjust MIME type if needed
+    const blob = new Blob([binaryArray], { type: 'application/pdf' }); // Adjust MIME type based on file type
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -52,7 +52,7 @@ const ShareLink: React.FC = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  };    
+  };  
 
   return (
     <div className="container mt-5">

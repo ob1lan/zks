@@ -95,16 +95,16 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     }
 
     const stream = data.Body as Readable;
-    const chunks: Buffer[] = [];
+    const chunks: Uint8Array[] = [];
     for await (const chunk of stream) {
-      chunks.push(chunk);
+      chunks.push(new Uint8Array(chunk));
     }
-    const encryptedContent = Buffer.concat(chunks).toString();
+    const encryptedContent = Buffer.concat(chunks).toString('utf8');
 
     // Decrypt the content
     const decryptedWordArray = CryptoJS.AES.decrypt(encryptedContent, passphrase);
-    const decryptedBytes = new Uint8Array(CryptoJS.enc.Base64.parse(decryptedWordArray.toString(CryptoJS.enc.Base64)).words);
-    const decryptedBuffer = Buffer.from(decryptedBytes.buffer);
+    const decryptedUint8Array = CryptoJS.enc.Base64.parse(decryptedWordArray.toString(CryptoJS.enc.Base64));
+    const decryptedBuffer = Buffer.from(decryptedUint8Array.words.map(word => (word & 0xff000000) >> 24));
 
     res.json({
       filename: fileMetadata.filename,

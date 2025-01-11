@@ -14,8 +14,8 @@ const FileEncryptor: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
 
-  const [iv, setIv] = useState<number[] | null>(null);
-  const [salt, setSalt] = useState<number[] | null>(null);
+  const [iv, setIv] = useState<string | null>(null);
+  const [salt, setSalt] = useState<string | null>(null);
 
   // Generate a strong passphrase
   const generatePassphrase = () => {
@@ -38,8 +38,8 @@ const FileEncryptor: React.FC = () => {
     setPassphrase(generatedPassphrase);
   
     // Generate IV and salt
-    const ivArray = Array.from(CryptoJS.lib.WordArray.random(16).words); // 128-bit IV
-    const saltArray = Array.from(CryptoJS.lib.WordArray.random(16).words); // 128-bit salt
+    const ivArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
+    const saltArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
     setIv(ivArray);
     setSalt(saltArray);
   
@@ -47,15 +47,15 @@ const FileEncryptor: React.FC = () => {
     reader.onload = async () => {
       const fileContent = new Uint8Array(reader.result as ArrayBuffer);
   
-      // Encrypt binary file content as Base64
+      // Encrypt binary file content
       const wordArray = CryptoJS.lib.WordArray.create(fileContent);
       const encrypted = CryptoJS.AES.encrypt(wordArray, generatedPassphrase).toString();
       const encryptedBlob = new Blob([encrypted], { type: 'application/octet-stream' });
       setEncryptedFile(encryptedBlob);
     };
     reader.readAsArrayBuffer(file);
-  };  
-
+  };
+  
   // Upload the encrypted file
   const uploadFile = async () => {
     if (!encryptedFile || !iv || !salt || !file) {
