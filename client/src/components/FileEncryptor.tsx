@@ -3,6 +3,9 @@ import { Button, Form, Alert, Spinner } from 'react-bootstrap';
 import CryptoJS from 'crypto-js';
 import axios from 'axios';
 
+const backendUrl = process.env.REACT_APP_BACKEND_URL;
+const frontendUrl = process.env.REACT_APP_FRONTEND_URL ?? 'http://localhost:3000';
+
 const FileEncryptor: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [passphrase, setPassphrase] = useState('');
@@ -74,7 +77,7 @@ const FileEncryptor: React.FC = () => {
       formData.append('salt', JSON.stringify(salt)); // Send salt as a JSON string
 
       // Send the request to the server
-      const response = await axios.post('http://localhost:4000/api/upload', formData, {
+      const response = await axios.post(`${backendUrl}/api/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -115,7 +118,7 @@ const FileEncryptor: React.FC = () => {
         <Alert variant="info" className="mt-3">
           Passphrase: <strong>{passphrase}</strong>
           <br />
-          <b>Note:</b> This passphrase will not be shown again. Save it securely!
+          <b>Note:</b> This passphrase is required to decrypt the file. Save it securely. It will <strong>not</strong> be stored or recoverable by us.
         </Alert>
       )}
 
@@ -137,9 +140,11 @@ const FileEncryptor: React.FC = () => {
       {fileId && (
         <Alert variant="success" className="mt-3">
           File uploaded successfully! Share this link with the recipient: <br />
-          <a href={`http://localhost:3000/decrypt?fileId=${fileId}`} target="_blank" rel="noopener noreferrer">
-            http://localhost:3000/decrypt?fileId={fileId}
+          <a href={`${frontendUrl}/decrypt?fileId=${fileId}`} target="_blank" rel="noopener noreferrer">
+            {`${frontendUrl}/decrypt?fileId=${fileId}`}
           </a>
+          <br />
+          <strong>Note:</strong> Share the passphrase securely with the recipient. Without it, the file cannot be decrypted.
         </Alert>
       )}
     </div>

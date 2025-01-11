@@ -9,7 +9,7 @@ const createApp = () => {
   const app = express();
 
   // Middleware
-  app.use(cors({ origin: 'http://localhost:3000' })); 
+  app.use(cors({ origin: process.env.FRONTEND_URL ?? 'http://localhost:3000' }));
 
   // Increase JSON body limit to handle larger ciphertext
   app.use(express.json({ limit: '100mb' }));
