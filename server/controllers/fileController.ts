@@ -95,22 +95,20 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     }
 
     const stream = data.Body as Readable;
-    const chunks: Uint8Array[] = [];
+    const chunks: Buffer[] = [];
     for await (const chunk of stream) {
-      chunks.push(new Uint8Array(chunk));
+      chunks.push(chunk);
     }
-    const encryptedContent = Buffer.concat(chunks).toString('utf8');
+    const encryptedContent = Buffer.concat(chunks).toString();
 
-    const decrypted = CryptoJS.AES.decrypt(encryptedContent, passphrase).toString(CryptoJS.enc.Base64);
-
-    if (!decrypted) {
-      res.status(400).json({ error: 'Invalid passphrase or decryption failed' });
-      return;
-    }
+    // Decrypt the content
+    const decryptedWordArray = CryptoJS.AES.decrypt(encryptedContent, passphrase);
+    const decryptedBytes = new Uint8Array(CryptoJS.enc.Base64.parse(decryptedWordArray.toString(CryptoJS.enc.Base64)).words);
+    const decryptedBuffer = Buffer.from(decryptedBytes.buffer);
 
     res.json({
       filename: fileMetadata.filename,
-      content: decrypted, // Base64 encoded binary content
+      content: decryptedBuffer.toString('base64'), // Send Base64-encoded content
     });
   } catch (error) {
     console.error('Decryption error:', error);

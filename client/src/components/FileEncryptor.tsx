@@ -47,15 +47,14 @@ const FileEncryptor: React.FC = () => {
     reader.onload = async () => {
       const fileContent = new Uint8Array(reader.result as ArrayBuffer);
   
-      // Encrypt binary file content
+      // Encrypt binary file content as Base64
       const wordArray = CryptoJS.lib.WordArray.create(fileContent);
       const encrypted = CryptoJS.AES.encrypt(wordArray, generatedPassphrase).toString();
       const encryptedBlob = new Blob([encrypted], { type: 'application/octet-stream' });
       setEncryptedFile(encryptedBlob);
     };
     reader.readAsArrayBuffer(file);
-  };
-  
+  };  
 
   // Upload the encrypted file
   const uploadFile = async () => {
