@@ -72,7 +72,6 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
   try {
     const { fileId, passphrase } = req.body;
 
-    // Validate inputs
     if (!fileId || !passphrase) {
       res.status(400).json({ error: 'Missing fileId or passphrase' });
       return;
@@ -96,14 +95,13 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     }
 
     const stream = data.Body as Readable;
-    const chunks: Buffer[] = [];
+    const chunks: Uint8Array[] = [];
     for await (const chunk of stream) {
-      chunks.push(chunk);
+      chunks.push(new Uint8Array(chunk));
     }
-    const encryptedContent = Buffer.concat(chunks).toString();
+    const encryptedContent = Buffer.concat(chunks).toString('utf8');
 
-    // Decrypt the file
-    const decrypted = CryptoJS.AES.decrypt(encryptedContent, passphrase).toString(CryptoJS.enc.Utf8);
+    const decrypted = CryptoJS.AES.decrypt(encryptedContent, passphrase).toString(CryptoJS.enc.Base64);
 
     if (!decrypted) {
       res.status(400).json({ error: 'Invalid passphrase or decryption failed' });
@@ -112,7 +110,7 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
 
     res.json({
       filename: fileMetadata.filename,
-      content: decrypted,
+      content: decrypted, // Base64 encoded binary content
     });
   } catch (error) {
     console.error('Decryption error:', error);

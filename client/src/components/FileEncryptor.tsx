@@ -33,27 +33,29 @@ const FileEncryptor: React.FC = () => {
   // Encrypt the file
   const encryptFile = async () => {
     if (!file) return;
-
+  
     const generatedPassphrase = generatePassphrase();
     setPassphrase(generatedPassphrase);
-
+  
     // Generate IV and salt
     const ivArray = Array.from(CryptoJS.lib.WordArray.random(16).words); // 128-bit IV
     const saltArray = Array.from(CryptoJS.lib.WordArray.random(16).words); // 128-bit salt
     setIv(ivArray);
     setSalt(saltArray);
-
+  
     const reader = new FileReader();
     reader.onload = async () => {
-      const fileContent = reader.result as string;
-
-      // Encrypt file content using AES
-      const encrypted = CryptoJS.AES.encrypt(fileContent, generatedPassphrase).toString();
-      const encryptedBlob = new Blob([encrypted], { type: file.type });
+      const fileContent = new Uint8Array(reader.result as ArrayBuffer);
+  
+      // Encrypt binary file content
+      const wordArray = CryptoJS.lib.WordArray.create(fileContent);
+      const encrypted = CryptoJS.AES.encrypt(wordArray, generatedPassphrase).toString();
+      const encryptedBlob = new Blob([encrypted], { type: 'application/octet-stream' });
       setEncryptedFile(encryptedBlob);
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   };
+  
 
   // Upload the encrypted file
   const uploadFile = async () => {

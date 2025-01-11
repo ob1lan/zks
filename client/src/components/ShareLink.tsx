@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Form, Alert } from 'react-bootstrap';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
+import CryptoJS from 'crypto-js';
 
 const ShareLink: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -35,8 +36,11 @@ const ShareLink: React.FC = () => {
 
   const handleDownload = () => {
     if (!decryptedContent || !filename) return;
-
-    const blob = new Blob([decryptedContent], { type: 'text/plain' });
+  
+    // Convert Base64 content to binary
+    const binaryContent = CryptoJS.enc.Base64.parse(decryptedContent).toString(CryptoJS.enc.Latin1);
+    const blob = new Blob([binaryContent], { type: 'application/octet-stream' });
+  
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -44,7 +48,7 @@ const ShareLink: React.FC = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  };
+  };  
 
   return (
     <div className="container mt-5">
