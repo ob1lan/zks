@@ -115,7 +115,7 @@ const FileEncryptor: React.FC = () => {
         <Alert variant="info" className="mt-3">
           Passphrase: <strong>{passphrase}</strong>
           <br />
-          Note: This passphrase will not be shown again. Save it securely!
+          <b>Note:</b> This passphrase will not be shown again. Save it securely!
         </Alert>
       )}
 
