@@ -30,7 +30,6 @@ const FileEncryptor: React.FC = () => {
     }
   };
 
-  // Encrypt the file
   const encryptFile = async () => {
     if (!file) {
       setUploadError("No file selected for encryption.");
@@ -58,77 +57,43 @@ const FileEncryptor: React.FC = () => {
   
       const encryptedBlob = new Blob([encrypted], { type: "application/octet-stream" });
       setEncryptedFile(encryptedBlob);
-  
-      // Prepare form data for upload
-      const formData = new FormData();
-      formData.append("file", encryptedBlob, file.name);
-      formData.append("iv", ivArray);
-      formData.append("salt", saltArray);
-      formData.append("filename", file.name);
-  
-      try {
-        const response = await axios.post(
-          `${process.env.REACT_APP_BACKEND_URL}/api/upload`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-  
-        setFileId(response.data.fileId);
-      } catch (error) {
-        setUploadError("Failed to upload the file. Please try again.");
-      } finally {
-        setUploading(false);
-      }
     };
     reader.readAsArrayBuffer(file);
   };
   
-  
-  // Upload the encrypted file
   const uploadFile = async () => {
-    if (!encryptedFile || !iv || !salt || !file) {
-      setUploadError('Missing required fields: IV, salt, or file.');
+    if (!encryptedFile || !iv || !salt) {
+      setUploadError("Missing required fields: IV, salt, or encrypted file.");
       return;
     }
-
+  
     setUploading(true);
     setUploadError(null);
-
+  
+    const formData = new FormData();
+    formData.append("file", encryptedFile, file?.name || "file");
+    formData.append("iv", iv);
+    formData.append("salt", salt);
+    formData.append("filename", file?.name || "");
+  
     try {
-      const formData = new FormData();
-
-      // Append the encrypted file as a binary Blob
-      formData.append('file', encryptedFile); // The backend expects this as 'file'
-
-      // Append additional metadata fields
-      formData.append('filename', file?.name || ''); // Use the original file name
-      formData.append('iv', JSON.stringify(iv)); // Send IV as a JSON string
-      formData.append('salt', JSON.stringify(salt)); // Send salt as a JSON string
-
-      // Send the request to the server
-      const response = await axios.post(`${backendUrl}/api/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      // Handle success
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/upload`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+  
       setFileId(response.data.fileId);
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.error('Upload error:', error.response?.data || error.message);
-      } else {
-        console.error('Upload error:', error);
-      }
-      setUploadError('Failed to upload the file. Please try again.');
+      setUploadError("Failed to upload the file. Please try again.");
     } finally {
       setUploading(false);
     }
-  };
+  };  
 
   return (
     <div className="container mt-5">

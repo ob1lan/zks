@@ -19,7 +19,7 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
   try {
     const { iv, salt, filename } = req.body;
     const ciphertext = req.file?.buffer;
-    
+
     // Validate required fields
     if (!iv || !salt || !filename || !ciphertext) {
       res.status(400).json({
@@ -77,13 +77,13 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     const { fileId, passphrase } = req.body;
 
     if (!fileId || !passphrase) {
-      res.status(400).json({ error: 'Missing fileId or passphrase' });
+      res.status(400).json({ error: "Missing fileId or passphrase" });
       return;
     }
 
     const fileMetadata = metadataStore[fileId];
     if (!fileMetadata) {
-      res.status(404).json({ error: 'File metadata not found' });
+      res.status(404).json({ error: "File metadata not found" });
       return;
     }
 
@@ -94,7 +94,7 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
 
     const data = await s3Client.send(new GetObjectCommand(downloadParams));
     if (!data.Body) {
-      res.status(404).json({ error: 'File not found in S3' });
+      res.status(404).json({ error: "File not found in S3" });
       return;
     }
 
@@ -103,22 +103,22 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     for await (const chunk of stream) {
       chunks.push(chunk);
     }
-    const encryptedContent = Buffer.concat(chunks).toString('utf8');
+    const encryptedContent = Buffer.concat(chunks).toString("utf8");
 
     // Decrypt binary content
     const decryptedWordArray = CryptoJS.AES.decrypt(encryptedContent, passphrase, {
       iv: CryptoJS.enc.Base64.parse(fileMetadata.iv),
     });
 
-    const decryptedBytes = CryptoJS.enc.Utf8.stringify(decryptedWordArray).split('').map((char) => char.charCodeAt(0));
-    const decryptedBuffer = Buffer.from(decryptedBytes);
+    const decryptedBytes = CryptoJS.enc.Base64.stringify(decryptedWordArray);
+    const decryptedBuffer = Buffer.from(decryptedBytes, "base64");
 
     res.json({
       filename: fileMetadata.filename,
-      content: decryptedBuffer.toString('base64'), // Base64-encoded content
+      content: decryptedBuffer.toString("base64"), // Send Base64-encoded binary content
     });
   } catch (error) {
-    console.error('Decryption error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Decryption error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };
