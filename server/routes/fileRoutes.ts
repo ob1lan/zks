@@ -1,7 +1,7 @@
 // routes/fileRoutes.ts
 import { Router } from 'express';
 import multer from 'multer';
-import { uploadFile, getFile } from '../controllers/fileController';
+import { uploadFile, getFile, decryptFile } from '../controllers/fileController';
 
 const router = Router();
 const upload = multer(); // Memory storage for uploaded files
@@ -11,5 +11,8 @@ router.post('/upload', upload.single('file'), uploadFile);
 
 // GET /api/file/:fileId
 router.get('/file/:fileId', getFile);
+
+// POST /api/decrypt
+router.post('/decrypt', decryptFile);
 
 export default router;
