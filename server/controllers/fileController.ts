@@ -105,21 +105,13 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     const decryptedWordArray = CryptoJS.AES.decrypt(encryptedContent, passphrase, {
       iv: CryptoJS.enc.Base64.parse(fileMetadata.iv),
     });
-    const decryptedBytes = CryptoJS.enc.Utf8.parse(decryptedWordArray.toString(CryptoJS.enc.Base64)).words;
-    const decryptedBuffer = Buffer.from(
-      decryptedBytes.map((word) => {
-        return [
-          (word >> 24) & 0xff,
-          (word >> 16) & 0xff,
-          (word >> 8) & 0xff,
-          word & 0xff,
-        ];
-      }).flat()
-    );
+
+    const decryptedBytes = CryptoJS.enc.Utf8.stringify(decryptedWordArray).split('').map((char) => char.charCodeAt(0));
+    const decryptedBuffer = Buffer.from(decryptedBytes);
 
     res.json({
       filename: fileMetadata.filename,
-      content: decryptedBuffer.toString('base64'), // Send Base64-encoded content
+      content: decryptedBuffer.toString('base64'), // Base64-encoded content
     });
   } catch (error) {
     console.error('Decryption error:', error);
