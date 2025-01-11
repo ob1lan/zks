@@ -32,30 +32,61 @@ const FileEncryptor: React.FC = () => {
 
   // Encrypt the file
   const encryptFile = async () => {
-    if (!file) return;
+    if (!file) {
+      setUploadError("No file selected for encryption.");
+      return;
+    }
   
     const generatedPassphrase = generatePassphrase();
     setPassphrase(generatedPassphrase);
   
-    // Generate IV
-    const ivArray = CryptoJS.lib.WordArray.random(16);
-    setIv(ivArray.toString(CryptoJS.enc.Base64));
+    // Generate IV and salt
+    const ivArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
+    const saltArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
+    setIv(ivArray);
+    setSalt(saltArray);
   
     const reader = new FileReader();
     reader.onload = async () => {
       const fileContent = new Uint8Array(reader.result as ArrayBuffer);
   
-      // Encrypt binary content
+      // Encrypt binary data
       const wordArray = CryptoJS.lib.WordArray.create(fileContent);
       const encrypted = CryptoJS.AES.encrypt(wordArray, generatedPassphrase, {
-        iv: ivArray,
+        iv: CryptoJS.enc.Base64.parse(ivArray),
       }).toString();
   
-      const encryptedBlob = new Blob([encrypted], { type: 'application/octet-stream' });
+      const encryptedBlob = new Blob([encrypted], { type: "application/octet-stream" });
       setEncryptedFile(encryptedBlob);
+  
+      // Prepare form data for upload
+      const formData = new FormData();
+      formData.append("file", encryptedBlob, file.name);
+      formData.append("iv", ivArray);
+      formData.append("salt", saltArray);
+      formData.append("filename", file.name);
+  
+      try {
+        const response = await axios.post(
+          `${process.env.REACT_APP_BACKEND_URL}/api/upload`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+  
+        setFileId(response.data.fileId);
+      } catch (error) {
+        setUploadError("Failed to upload the file. Please try again.");
+      } finally {
+        setUploading(false);
+      }
     };
     reader.readAsArrayBuffer(file);
-  };  
+  };
+  
   
   // Upload the encrypted file
   const uploadFile = async () => {

@@ -19,11 +19,17 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
   try {
     const { iv, salt, filename } = req.body;
     const ciphertext = req.file?.buffer;
-
+    
+    // Validate required fields
     if (!iv || !salt || !filename || !ciphertext) {
       res.status(400).json({
-        error: 'Missing required fields',
-        details: { iv, salt, filename, ciphertext },
+        error: "Missing required fields",
+        details: {
+          iv: iv ? "Present" : "Missing",
+          salt: salt ? "Present" : "Missing",
+          filename: filename ? "Present" : "Missing",
+          file: ciphertext ? "Present" : "Missing",
+        },
       });
       return;
     }
@@ -39,15 +45,13 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
 
     metadataStore[fileId] = { iv, salt, filename };
 
-    // Generate a frontend link
-    const frontendLink = `http://localhost:3000/decrypt?fileId=${fileId}`;
-
-    res.json({ fileId, frontendLink });
+    res.json({ fileId });
   } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Upload error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };
+
 
 // Get file metadata and encrypted content
 export const getFile = async (req: Request, res: Response): Promise<void> => {

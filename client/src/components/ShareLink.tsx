@@ -53,7 +53,6 @@ const ShareLink: React.FC = () => {
     document.body.removeChild(a);
   };
   
-
   return (
     <div className="container mt-5">
       <h1>Decrypt and Download File</h1>
