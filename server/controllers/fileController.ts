@@ -1,40 +1,53 @@
 // controllers/fileController.ts
-
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { Readable } from 'stream';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, BUCKET_NAME } from '../config/s3Config';
 
 // In-memory store: fileId -> { iv, salt, filename }
 interface EncryptedMetadata {
-  iv: number[];
-  salt: number[];
+  iv: string;
+  salt: string;
   filename: string;
 }
 const metadataStore: Record<string, EncryptedMetadata> = {};
 
-// Uploads encrypted data to S3
+// Upload encrypted data to S3
 export const uploadFile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { iv, salt, ciphertext, filename } = req.body;
+    const { iv, salt, filename } = req.body;
+    const ciphertext = req.file?.buffer;
 
-    if (!iv || !salt || !ciphertext || !filename) {
-      res.status(400).json({ error: 'Missing required fields (iv, salt, ciphertext, filename)' });
+    // Validate inputs
+    if (!iv || !salt || !filename || !ciphertext) {
+      res.status(400).json({
+        error: 'Missing required fields',
+        details: {
+          iv: iv ? 'Present' : 'Missing',
+          salt: salt ? 'Present' : 'Missing',
+          filename: filename ? 'Present' : 'Missing',
+          ciphertext: ciphertext ? 'Present' : 'Missing',
+        },
+      });
       return;
     }
 
+    // Generate unique fileId
     const fileId = uuidv4();
-    const buffer = Buffer.from(ciphertext);
+
+    // Upload file to S3
     const uploadParams = {
       Bucket: BUCKET_NAME,
       Key: `uploads/${fileId}`,
-      Body: buffer,
+      Body: ciphertext,
     };
 
     await s3Client.send(new PutObjectCommand(uploadParams));
 
+    // Store metadata
     metadataStore[fileId] = { iv, salt, filename };
+
+    // Respond with the fileId
     res.json({ fileId });
   } catch (error) {
     console.error('Upload error:', error);
@@ -42,6 +55,7 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+// Get file metadata and encrypted content
 export const getFile = async (req: Request, res: Response): Promise<void> => {
   try {
     const { fileId } = req.params;
@@ -52,31 +66,7 @@ export const getFile = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const downloadParams = {
-      Bucket: BUCKET_NAME,
-      Key: `uploads/${fileId}`,
-    };
-
-    const data = await s3Client.send(new GetObjectCommand(downloadParams));
-
-    if (!data.Body) {
-      res.status(404).json({ error: 'File not found in S3' });
-      return;
-    }
-
-    const stream = data.Body as Readable;
-    const chunks: Buffer[] = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-    const ciphertextBuffer = Buffer.concat(chunks);
-
-    res.json({
-      iv: fileMetadata.iv,
-      salt: fileMetadata.salt,
-      filename: fileMetadata.filename,
-      ciphertext: Array.from(ciphertextBuffer),
-    });
+    res.json(fileMetadata);
   } catch (error) {
     console.error('File retrieval error:', error);
     res.status(500).json({ error: 'Server error' });
