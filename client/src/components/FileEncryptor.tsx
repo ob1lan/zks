@@ -3,7 +3,6 @@ import { Button, Form, Alert, Spinner } from 'react-bootstrap';
 import CryptoJS from 'crypto-js';
 import axios from 'axios';
 
-const backendUrl = process.env.REACT_APP_BACKEND_URL;
 const frontendUrl = process.env.REACT_APP_FRONTEND_URL ?? 'http://localhost:3000';
 
 const FileEncryptor: React.FC = () => {
@@ -93,23 +92,29 @@ const FileEncryptor: React.FC = () => {
     } finally {
       setUploading(false);
     }
-  };  
-
+  };
+  
   return (
     <div className="container mt-5">
-      <h1>File Sharing with Encryption</h1>
-      <Form>
-        {/* File Input */}
-        <Form.Group>
-          <Form.Label>Choose a file</Form.Label>
-          <Form.Control type="file" onChange={handleFileChange} />
-        </Form.Group>
+      <h1 className="text-center">Zero-Knowledge File Sharing</h1>
+      <div className="container w-75">
+        <p className="lead">
+          Select a file to encrypt and upload. A passphrase will be generated for the encryption. Share the passphrase with the recipient to allow them to decrypt the file.
+        </p>
+        <Form>
+          {/* File Input */}
+          <Form.Group>
+            <Form.Control type="file" onChange={handleFileChange} />
+          </Form.Group>
 
-        {/* Encrypt Button */}
-        <Button className="mt-3" onClick={encryptFile} disabled={!file || passphrase !== ''}>
-          Encrypt File
-        </Button>
-      </Form>
+          {/* Encrypt Button */}
+          <div className="d-flex flex-column align-items-center">
+            <Button className="mt-3 btn-lg" onClick={encryptFile} disabled={!file || passphrase !== ''}>
+              Encrypt File
+            </Button>
+          </div>
+        </Form>
+      </div>
 
       {/* Passphrase Display */}
       {passphrase && (
