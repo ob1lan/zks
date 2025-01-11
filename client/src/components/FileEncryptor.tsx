@@ -71,10 +71,10 @@ const FileEncryptor: React.FC = () => {
     setUploadError(null);
   
     const formData = new FormData();
-    formData.append("file", encryptedFile, file?.name || "file");
+    formData.append("file", encryptedFile, file?.name ?? "file");
     formData.append("iv", iv);
     formData.append("salt", salt);
-    formData.append("filename", file?.name || "");
+    formData.append("filename", file?.name ?? "");
   
     try {
       const response = await axios.post(
