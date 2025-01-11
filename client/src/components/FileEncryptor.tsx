@@ -137,8 +137,8 @@ const FileEncryptor: React.FC = () => {
       {fileId && (
         <Alert variant="success" className="mt-3">
           File uploaded successfully! Share this link with the recipient: <br />
-          <a href={`http://localhost:4000/api/file/${fileId}`} target="_blank" rel="noopener noreferrer">
-            http://localhost:4000/api/file/{fileId}
+          <a href={`http://localhost:3000/decrypt?fileId=${fileId}`} target="_blank" rel="noopener noreferrer">
+            http://localhost:3000/decrypt?fileId={fileId}
           </a>
         </Alert>
       )}

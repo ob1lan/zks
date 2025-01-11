@@ -15,22 +15,15 @@ interface EncryptedMetadata {
 const metadataStore: Record<string, EncryptedMetadata> = {};
 
 // controllers/fileController.ts
-
 export const uploadFile = async (req: Request, res: Response): Promise<void> => {
   try {
     const { iv, salt, filename } = req.body;
     const ciphertext = req.file?.buffer;
 
-    // Validate inputs
     if (!iv || !salt || !filename || !ciphertext) {
       res.status(400).json({
         error: 'Missing required fields',
-        details: {
-          iv: iv ? 'Present' : 'Missing',
-          salt: salt ? 'Present' : 'Missing',
-          filename: filename ? 'Present' : 'Missing',
-          ciphertext: ciphertext ? 'Present' : 'Missing',
-        },
+        details: { iv, salt, filename, ciphertext },
       });
       return;
     }
@@ -45,7 +38,11 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
     await s3Client.send(new PutObjectCommand(uploadParams));
 
     metadataStore[fileId] = { iv, salt, filename };
-    res.json({ fileId });
+
+    // Generate a frontend link
+    const frontendLink = `http://localhost:3000/decrypt?fileId=${fileId}`;
+
+    res.json({ fileId, frontendLink });
   } catch (error) {
     console.error('Upload error:', error);
     res.status(500).json({ error: 'Server error' });

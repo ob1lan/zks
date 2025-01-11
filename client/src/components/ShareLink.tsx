@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Form, Alert } from 'react-bootstrap';
 import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
 
 const ShareLink: React.FC = () => {
-  const [fileId, setFileId] = useState('');
+  const [searchParams] = useSearchParams();
+  const fileId = searchParams.get('fileId') || '';
+
   const [passphrase, setPassphrase] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
@@ -47,15 +50,6 @@ const ShareLink: React.FC = () => {
     <div className="container mt-5">
       <h1>Decrypt and Download File</h1>
       <Form>
-        <Form.Group>
-          <Form.Label>File ID</Form.Label>
-          <Form.Control
-            type="text"
-            placeholder="Enter file ID"
-            value={fileId}
-            onChange={(e) => setFileId(e.target.value)}
-          />
-        </Form.Group>
         <Form.Group className="mt-3">
           <Form.Label>Passphrase</Form.Label>
           <Form.Control
