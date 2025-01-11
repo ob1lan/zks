@@ -37,14 +37,14 @@ const ShareLink: React.FC = () => {
   const handleDownload = () => {
     if (!decryptedContent || !filename) return;
   
-    // Decode Base64 content back to binary
+    // Decode Base64 content to binary
     const binaryContent = atob(decryptedContent);
     const binaryArray = new Uint8Array(binaryContent.length);
     for (let i = 0; i < binaryContent.length; i++) {
       binaryArray[i] = binaryContent.charCodeAt(i);
     }
   
-    const blob = new Blob([binaryArray], { type: 'application/pdf' }); // Adjust MIME type based on file type
+    const blob = new Blob([binaryArray], { type: 'application/pdf' }); // Adjust MIME type based on file
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
