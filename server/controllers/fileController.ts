@@ -12,7 +12,8 @@ interface EncryptedMetadata {
 }
 const metadataStore: Record<string, EncryptedMetadata> = {};
 
-// Upload encrypted data to S3
+// controllers/fileController.ts
+
 export const uploadFile = async (req: Request, res: Response): Promise<void> => {
   try {
     const { iv, salt, filename } = req.body;
@@ -32,10 +33,7 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // Generate unique fileId
     const fileId = uuidv4();
-
-    // Upload file to S3
     const uploadParams = {
       Bucket: BUCKET_NAME,
       Key: `uploads/${fileId}`,
@@ -44,10 +42,7 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
 
     await s3Client.send(new PutObjectCommand(uploadParams));
 
-    // Store metadata
     metadataStore[fileId] = { iv, salt, filename };
-
-    // Respond with the fileId
     res.json({ fileId });
   } catch (error) {
     console.error('Upload error:', error);
