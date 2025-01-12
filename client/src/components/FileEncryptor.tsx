@@ -44,36 +44,36 @@ const FileEncryptor: React.FC = () => {
       setUploadError('No file selected for encryption.');
       return;
     }
-
+  
     const generatedPassphrase = generatePassphrase();
     setPassphrase(generatedPassphrase);
-
+  
     // Generate IV and salt
     const ivArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
     const saltArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
-
+  
     const reader = new FileReader();
     reader.onload = async () => {
       const fileContent = new Uint8Array(reader.result as ArrayBuffer);
-
+  
       // Encrypt binary data
       const wordArray = CryptoJS.lib.WordArray.create(fileContent);
       const encrypted = CryptoJS.AES.encrypt(wordArray, generatedPassphrase, {
         iv: CryptoJS.enc.Base64.parse(ivArray),
       }).toString();
-
+  
       const encryptedBlob = new Blob([encrypted], { type: 'application/octet-stream' });
-
+  
       // Upload the encrypted file
       setUploading(true);
       setUploadError(null);
-
+  
       const formData = new FormData();
       formData.append('file', encryptedBlob, file.name);
       formData.append('iv', ivArray);
       formData.append('salt', saltArray);
       formData.append('filename', file.name);
-
+  
       try {
         const response = await axios.post(
           `${process.env.REACT_APP_BACKEND_URL}/api/upload`,
@@ -84,17 +84,20 @@ const FileEncryptor: React.FC = () => {
             },
           }
         );
-
+  
+        // Update fileId and password states with backend response
         setFileId(response.data.fileId);
+        setPassword(response.data.password); // Fix: Set password here
       } catch (error) {
         setUploadError('Failed to upload the file. Please try again.');
       } finally {
         setUploading(false);
       }
     };
-
+  
     reader.readAsArrayBuffer(file);
   };
+  
 
   // Reset page state
   const handleReset = () => {
