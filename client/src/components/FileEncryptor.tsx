@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button, Form, Spinner, Table } from 'react-bootstrap';
 import CryptoJS from 'crypto-js';
 import axios from 'axios';
@@ -6,6 +6,7 @@ import axios from 'axios';
 const frontendUrl = process.env.REACT_APP_FRONTEND_URL ?? 'http://localhost:3000';
 
 const FileEncryptor: React.FC = () => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileDetails, setFileDetails] = useState<{ name: string; type: string; size: number } | null>(null);
   const [passphrase, setPassphrase] = useState('');
@@ -30,8 +31,8 @@ const FileEncryptor: React.FC = () => {
         size: selectedFile.size,
       });
       setPassphrase(''); // Reset passphrase when a new file is selected
-      setFileId(null); // Reset fileId
-      setUploadError(null); // Reset any errors
+      setFileId(null);
+      setUploadError(null);
     }
   };
 
@@ -93,17 +94,38 @@ const FileEncryptor: React.FC = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  // Reset page state
+  const handleReset = () => {
+    setFile(null);
+    setFileDetails(null);
+    setPassphrase('');
+    setFileId(null);
+    setUploadError(null);
+    setUploading(false);
+
+    // Clear file input value
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="container mt-5">
-      <h1 className="text-center">Zero-Knowledge File Sharing</h1>
       <div className="container w-75">
+      <nav aria-label="breadcrumb">
+        <ol className="breadcrumb">
+          <li className="breadcrumb-item active" aria-current="page">Home</li>
+          <li className="breadcrumb-item"><a href="/decrypt">Decrypt</a></li>
+        </ol>
+      </nav>
+      <h1 className="text-center">Zero-Knowledge File Sharing</h1>
         <p className="lead">
           Select a file to securely encrypt and upload. A passphrase will be generated for the encryption. Share the
           passphrase with the recipient to allow them to decrypt the file.
         </p>
         <Form>
           <Form.Group>
-            <Form.Control type="file" onChange={handleFileChange} />
+            <Form.Control type="file" ref={fileInputRef} onChange={handleFileChange} />
           </Form.Group>
         </Form>
 
@@ -145,12 +167,18 @@ const FileEncryptor: React.FC = () => {
           </Table>
         )}
 
-        {/* Securely Upload Button */}
+        {/* Conditional Button Rendering */}
         {fileDetails && (
           <div className="text-center">
-            <Button className="mt-3 btn-lg" onClick={handleUpload} disabled={uploading}>
-              {uploading ? <Spinner animation="border" size="sm" /> : 'Securely Upload'}
-            </Button>
+            {fileId ? (
+              <Button className="mt-3 btn-lg" onClick={handleReset} variant="secondary">
+                Reset
+              </Button>
+            ) : (
+              <Button className="mt-3 btn-lg" onClick={handleUpload} disabled={uploading}>
+                {uploading ? <Spinner animation="border" size="sm" /> : 'Securely Upload'}
+              </Button>
+            )}
           </div>
         )}
 

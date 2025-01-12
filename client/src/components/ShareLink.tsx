@@ -17,7 +17,7 @@ const ShareLink: React.FC = () => {
     setDecryptedContent(null);
 
     try {
-      const response = await axios.post('http://localhost:4000/api/decrypt', {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/decrypt`, {
         fileId,
         passphrase,
       });
@@ -55,8 +55,14 @@ const ShareLink: React.FC = () => {
   
   return (
     <div className="container mt-5">
-      <h1 className="text-center">Decrypt and Download File</h1>
       <div className="container w-75">
+      <nav aria-label="breadcrumb">
+        <ol className="breadcrumb">
+          <li className="breadcrumb-item"><a href="/">Home</a></li>
+          <li className="breadcrumb-item active" aria-current="page">Decrypt</li>
+        </ol>
+      </nav>
+      <h1 className="text-center">Decrypt and Download File</h1>
       <p className="lead">
           Enter the passphrase to decrypt and download the file.
         </p>

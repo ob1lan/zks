@@ -12,6 +12,7 @@ interface EncryptedMetadata {
   salt: string;
   filename: string;
 }
+
 const metadataStore: Record<string, EncryptedMetadata> = {};
 
 // controllers/fileController.ts
@@ -51,7 +52,6 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
     res.status(500).json({ error: "Server error" });
   }
 };
-
 
 // Get file metadata and encrypted content
 export const getFile = async (req: Request, res: Response): Promise<void> => {
