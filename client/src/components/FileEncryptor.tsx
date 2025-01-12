@@ -9,6 +9,7 @@ const FileEncryptor: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileDetails, setFileDetails] = useState<{ name: string; type: string; size: number } | null>(null);
+  const [password, setPassword] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -30,7 +31,8 @@ const FileEncryptor: React.FC = () => {
         type: selectedFile.type || 'Unknown',
         size: selectedFile.size,
       });
-      setPassphrase(''); // Reset passphrase when a new file is selected
+      setPassword('');
+      setPassphrase(''); 
       setFileId(null);
       setUploadError(null);
     }
@@ -98,6 +100,7 @@ const FileEncryptor: React.FC = () => {
   const handleReset = () => {
     setFile(null);
     setFileDetails(null);
+    setPassword('');
     setPassphrase('');
     setFileId(null);
     setUploadError(null);
@@ -154,14 +157,22 @@ const FileEncryptor: React.FC = () => {
                 </tr>
               )}
               {fileId && (
-                <tr>
-                  <td>Shareable Link</td>
-                  <td>
-                    <a href={`${frontendUrl}/decrypt?fileId=${fileId}`} target="_blank" rel="noopener noreferrer">
-                      {`${frontendUrl}/decrypt?fileId=${fileId}`}
-                    </a>
-                  </td>
-                </tr>
+                <>
+                  <tr>
+                    <td>Password</td>
+                    <td>
+                      <strong>{password}</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Shareable Link</td>
+                    <td>
+                      <a href={`${frontendUrl}/decrypt?fileId=${fileId}`} target="_blank" rel="noopener noreferrer">
+                        {`${frontendUrl}/decrypt?fileId=${fileId}`}
+                      </a>
+                    </td>
+                  </tr>
+                </>
               )}
             </tbody>
           </Table>

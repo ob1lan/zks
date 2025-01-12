@@ -5,12 +5,14 @@ import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, BUCKET_NAME } from '../config/s3Config';
 import { Readable } from 'stream';
 import CryptoJS from 'crypto-js';
+import bcrypt from 'bcrypt';
 
-// In-memory store: fileId -> { iv, salt, filename }
+// In-memory store: fileId -> { iv, salt, filename, password }
 interface EncryptedMetadata {
   iv: string;
   salt: string;
   filename: string;
+  password: string;
 }
 
 const metadataStore: Record<string, EncryptedMetadata> = {};
@@ -36,6 +38,9 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
     }
 
     const fileId = uuidv4();
+    const password = uuidv4(); // Generate a strong random password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const uploadParams = {
       Bucket: BUCKET_NAME,
       Key: `uploads/${fileId}`,
@@ -44,9 +49,9 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
 
     await s3Client.send(new PutObjectCommand(uploadParams));
 
-    metadataStore[fileId] = { iv, salt, filename };
+    metadataStore[fileId] = { iv, salt, filename, password: hashedPassword };
 
-    res.json({ fileId });
+    res.json({ fileId, password }); // Return the password to the user
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ error: "Server error" });
@@ -74,16 +79,23 @@ export const getFile = async (req: Request, res: Response): Promise<void> => {
 // Decrypt the file content
 export const decryptFile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { fileId, passphrase } = req.body;
+    const { fileId, passphrase, password } = req.body;
 
-    if (!fileId || !passphrase) {
-      res.status(400).json({ error: "Missing fileId or passphrase" });
+    if (!fileId || !passphrase || !password) {
+      res.status(400).json({ error: "Missing fileId, passphrase, or password" });
       return;
     }
 
     const fileMetadata = metadataStore[fileId];
     if (!fileMetadata) {
       res.status(404).json({ error: "File metadata not found" });
+      return;
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, fileMetadata.password);
+    if (!isPasswordValid) {
+      res.status(403).json({ error: "Invalid password" });
       return;
     }
 

@@ -8,6 +8,7 @@ const ShareLink: React.FC = () => {
   const fileId = searchParams.get('fileId') ?? '';
 
   const [passphrase, setPassphrase] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
@@ -15,23 +16,24 @@ const ShareLink: React.FC = () => {
   const handleDecrypt = async () => {
     setError(null);
     setDecryptedContent(null);
-
+  
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/decrypt`, {
         fileId,
         passphrase,
+        password,
       });
-
+  
       setFilename(response.data.filename);
       setDecryptedContent(response.data.content);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setError(error.response?.data.error || 'Decryption failed.');
+        setError(error.response?.data.error || "Decryption failed.");
       } else {
-        setError('An unexpected error occurred.');
+        setError("An unexpected error occurred.");
       }
     }
-  };
+  };  
 
   const handleDownload = () => {
     if (!decryptedContent || !filename) return;
@@ -67,6 +69,12 @@ const ShareLink: React.FC = () => {
           Enter the passphrase to decrypt and download the file.
         </p>
         <Form>
+        <Form.Control
+            type="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
           <Form.Group className="mt-3">
             <Form.Control
               type="password"
