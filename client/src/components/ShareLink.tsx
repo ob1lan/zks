@@ -12,10 +12,12 @@ const ShareLink: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
+  const [isDecrypting, setIsDecrypting] = useState(false); // To manage decrypting state
 
   const handleDecrypt = async () => {
     setError(null);
     setDecryptedContent(null);
+    setIsDecrypting(true);
 
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/decrypt`, {
@@ -25,27 +27,28 @@ const ShareLink: React.FC = () => {
       });
 
       setFilename(response.data.filename);
-      setDecryptedContent(response.data.content);
+      setDecryptedContent(response.data.content); // Set decrypted content
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setError(error.response?.data.error || 'Decryption failed.');
+        setError(error.response?.data.error || 'Decryption failed. Please check your passphrase and password.');
       } else {
-        setError('An unexpected error occurred.');
+        setError('An unexpected error occurred. Please try again.');
       }
+    } finally {
+      setIsDecrypting(false);
     }
   };
 
   const handleDownload = () => {
     if (!decryptedContent || !filename) return;
 
-    // Decode Base64 content into binary
     const binaryContent = atob(decryptedContent);
     const binaryArray = new Uint8Array(binaryContent.length);
     for (let i = 0; i < binaryContent.length; i++) {
       binaryArray[i] = binaryContent.charCodeAt(i);
     }
 
-    const blob = new Blob([binaryArray], { type: 'application/pdf' }); // Adjust MIME type based on the file
+    const blob = new Blob([binaryArray], { type: 'application/pdf' }); // Adjust MIME type if needed
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -92,9 +95,9 @@ const ShareLink: React.FC = () => {
               <Button
                 className="mt-3 btn-lg"
                 onClick={handleDecrypt}
-                disabled={!(fileId && passphrase && password)} // Ensure button is active when all fields are filled
+                disabled={!(fileId && passphrase && password) || isDecrypting}
               >
-                Decrypt File
+                {isDecrypting ? 'Decrypting...' : 'Decrypt File'}
               </Button>
             )}
           </div>
