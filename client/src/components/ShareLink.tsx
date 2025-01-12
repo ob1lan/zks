@@ -5,7 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 
 const ShareLink: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const fileId = searchParams.get('fileId') || '';
+  const fileId = searchParams.get('fileId') ?? '';
 
   const [passphrase, setPassphrase] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -55,34 +55,40 @@ const ShareLink: React.FC = () => {
   
   return (
     <div className="container mt-5">
-      <h1>Decrypt and Download File</h1>
-      <Form>
-        <Form.Group className="mt-3">
-          <Form.Label>Passphrase</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Enter passphrase"
-            value={passphrase}
-            onChange={(e) => setPassphrase(e.target.value)}
-          />
-        </Form.Group>
-        <Button className="mt-3" onClick={handleDecrypt}>
-          Decrypt File
-        </Button>
-      </Form>
+      <h1 className="text-center">Decrypt and Download File</h1>
+      <div className="container w-75">
+      <p className="lead">
+          Enter the passphrase to decrypt and download the file.
+        </p>
+        <Form>
+          <Form.Group className="mt-3">
+            <Form.Control
+              type="password"
+              placeholder="Enter passphrase"
+              value={passphrase}
+              onChange={(e) => setPassphrase(e.target.value)}
+            />
+          </Form.Group>
+          <div className="text-center">
+            <Button className="mt-3 btn-lg" onClick={handleDecrypt}>
+              Decrypt File
+            </Button>
+          </div>
+        </Form>    
 
-      {error && (
-        <Alert variant="danger" className="mt-3">
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert variant="danger" className="mt-3">
+            {error}
+          </Alert>
+        )}
 
-      {decryptedContent && (
-        <div className="mt-3">
-          <Alert variant="success">File decrypted successfully!</Alert>
-          <Button onClick={handleDownload}>Download File</Button>
-        </div>
-      )}
+        {decryptedContent && (
+          <div className="mt-3">
+            <Alert variant="success">File decrypted successfully!</Alert>
+            <Button onClick={handleDownload}>Download File</Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

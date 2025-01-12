@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Form, Alert, Spinner, Table } from 'react-bootstrap';
+import { Button, Form, Spinner, Table } from 'react-bootstrap';
 import CryptoJS from 'crypto-js';
 import axios from 'axios';
 
@@ -123,6 +123,24 @@ const FileEncryptor: React.FC = () => {
                 <td>File Size</td>
                 <td>{(fileDetails.size / 1024).toFixed(2)} KB</td>
               </tr>
+              {passphrase && (
+                <tr>
+                  <td>Passphrase</td>
+                  <td>
+                    <strong>{passphrase}</strong>
+                  </td>
+                </tr>
+              )}
+              {fileId && (
+                <tr>
+                  <td>Shareable Link</td>
+                  <td>
+                    <a href={`${frontendUrl}/decrypt?fileId=${fileId}`} target="_blank" rel="noopener noreferrer">
+                      {`${frontendUrl}/decrypt?fileId=${fileId}`}
+                    </a>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </Table>
         )}
@@ -136,35 +154,11 @@ const FileEncryptor: React.FC = () => {
           </div>
         )}
 
-        {/* Passphrase Display */}
-        {passphrase && (
-          <Alert variant="danger" className="mt-3">
-            <b>Passphrase:</b> <br />
-            <pre>{passphrase}</pre>
-            <br />
-            <b>Note:</b> This passphrase is required to decrypt the file. Save it securely. It will <strong>not</strong>{' '}
-            be stored or recoverable by us.
-          </Alert>
-        )}
-
         {/* Error Message */}
         {uploadError && (
-          <Alert variant="danger" className="mt-3">
-            {uploadError}
-          </Alert>
-        )}
-
-        {/* Success Message */}
-        {fileId && (
-          <Alert variant="success" className="mt-3">
-            File uploaded successfully! Share this link with the recipient: <br />
-            <a href={`${frontendUrl}/decrypt?fileId=${fileId}`} target="_blank" rel="noopener noreferrer">
-              {`${frontendUrl}/decrypt?fileId=${fileId}`}
-            </a>
-            <br />
-            <strong>Note:</strong> Share the passphrase securely with the recipient. Without it, the file cannot be
-            decrypted.
-          </Alert>
+          <div className="mt-3">
+            <p className="text-danger">{uploadError}</p>
+          </div>
         )}
       </div>
     </div>
