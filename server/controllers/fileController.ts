@@ -17,7 +17,7 @@ interface EncryptedMetadata {
 
 const metadataStore: Record<string, EncryptedMetadata> = {};
 
-// controllers/fileController.ts
+// Upload file
 export const uploadFile = async (req: Request, res: Response): Promise<void> => {
   try {
     const { iv, filename, chunks } = req.body;
@@ -37,7 +37,7 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
     const uploadParams = {
       Bucket: BUCKET_NAME,
       Key: `uploads/${fileId}`,
-      Body: Buffer.from(ciphertext, 'utf8'), // Store ciphertext as UTF-8 encoded data
+      Body: Buffer.from(ciphertext, 'base64'), // Store ciphertext as Base64
     };
 
     await s3Client.send(new PutObjectCommand(uploadParams));
@@ -69,26 +69,26 @@ export const getFile = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// Decrypt the file content
+// Decrypt file
 export const decryptFile = async (req: Request, res: Response): Promise<void> => {
   try {
     const { fileId, passphrase, password } = req.body;
 
     if (!fileId || !passphrase || !password) {
-      res.status(400).json({ error: "Missing fileId, passphrase, or password" });
+      res.status(400).json({ error: 'Missing fileId, passphrase, or password' });
       return;
     }
 
     const fileMetadata = metadataStore[fileId];
     if (!fileMetadata) {
-      res.status(404).json({ error: "File metadata not found" });
+      res.status(404).json({ error: 'File metadata not found' });
       return;
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, fileMetadata.password);
     if (!isPasswordValid) {
-      res.status(403).json({ error: "Invalid password" });
+      res.status(403).json({ error: 'Invalid password' });
       return;
     }
 
@@ -99,7 +99,7 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
 
     const data = await s3Client.send(new GetObjectCommand(downloadParams));
     if (!data.Body) {
-      res.status(404).json({ error: "File not found in S3" });
+      res.status(404).json({ error: 'File not found in S3' });
       return;
     }
 
@@ -108,22 +108,22 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     for await (const chunk of stream) {
       chunks.push(chunk);
     }
-    const encryptedContent = Buffer.concat(chunks).toString('utf8');
+    const encryptedContent = Buffer.concat(chunks).toString('base64'); // Read Base64 data
 
     // Decrypt binary content
     const decryptedWordArray = CryptoJS.AES.decrypt(encryptedContent, passphrase, {
       iv: CryptoJS.enc.Base64.parse(fileMetadata.iv),
     });
 
-    const decryptedString = CryptoJS.enc.Utf8.stringify(decryptedWordArray);
-    const decryptedBuffer = Buffer.from(decryptedString, 'utf8');
+    const decryptedBytes = CryptoJS.enc.Utf8.stringify(decryptedWordArray);
+    const decryptedBuffer = Buffer.from(decryptedBytes, 'utf8');
 
     res.json({
       filename: fileMetadata.filename,
       content: decryptedBuffer.toString('base64'), // Send Base64-encoded binary content
     });
   } catch (error) {
-    console.error("Decryption error:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error('Decryption error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
