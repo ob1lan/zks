@@ -89,9 +89,9 @@ const ShareLink: React.FC = () => {
         )}
 
         {decryptedContent && (
-          <div className="mt-3">
+          <div className="mt-3 text-center">
             <Alert variant="success">File decrypted successfully!</Alert>
-            <Button onClick={handleDownload}>Download File</Button>
+            <Button className="mt-3 btn-lg" onClick={handleDownload}>Download File</Button>
           </div>
         )}
       </div>
