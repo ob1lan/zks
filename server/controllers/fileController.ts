@@ -112,14 +112,18 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     for await (const chunk of stream) {
       chunks.push(chunk);
     }
-    const encryptedContent = Buffer.concat(chunks).toString('base64'); // Base64-encoded ciphertext
+
+    const encryptedContent = Buffer.concat(chunks).toString(); // Retrieve as Base64 string
+
+    // Decode Base64 before decryption
+    const encryptedBytes = CryptoJS.enc.Base64.parse(encryptedContent);
 
     // Decrypt the content
-    const decryptedWordArray = CryptoJS.AES.decrypt(encryptedContent, passphrase, {
+    const cipherParams = CryptoJS.lib.CipherParams.create({ ciphertext: encryptedBytes });
+    const decryptedWordArray = CryptoJS.AES.decrypt(cipherParams, passphrase, {
       iv: CryptoJS.enc.Base64.parse(fileMetadata.iv),
     });
 
-    // Ensure decryption succeeded
     if (!decryptedWordArray.sigBytes || decryptedWordArray.sigBytes <= 0) {
       res.status(400).json({ error: 'Decryption failed. Invalid passphrase or corrupted file.' });
       return;
