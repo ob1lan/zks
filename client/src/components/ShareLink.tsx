@@ -1,33 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button, Form, Alert } from 'react-bootstrap';
 import axios from 'axios';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 const ShareLink: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const fileId = searchParams.get('fileId') ?? '';
 
+  const [password, setPassword] = useState(''); // Password state
   const [passphrase, setPassphrase] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
-
-  // Redirect if fileId is missing
-  useEffect(() => {
-    if (!fileId) {
-      navigate('/', { replace: true });
-    }
-  }, [fileId, navigate]);
 
   const handleDecrypt = async () => {
     setError(null);
     setDecryptedContent(null);
 
     try {
+      if (!password) {
+        setError('Password is required to decrypt the file.');
+        return;
+      }
+
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/decrypt`, {
         fileId,
         passphrase,
+        password, // Include password in the decryption request
       });
 
       setFilename(response.data.filename);
@@ -72,9 +71,17 @@ const ShareLink: React.FC = () => {
         </nav>
         <h1 className="text-center">Decrypt and Download File</h1>
         <p className="lead">
-          Enter the passphrase to decrypt and download the file.
+          Enter the password and passphrase to decrypt and download the file.
         </p>
         <Form>
+          <Form.Group className="mt-3">
+            <Form.Control
+              type="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </Form.Group>
           <Form.Group className="mt-3">
             <Form.Control
               type="password"

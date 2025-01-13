@@ -10,6 +10,7 @@ const FileEncryptor: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [fileDetails, setFileDetails] = useState<{ name: string; type: string; size: number } | null>(null);
   const [passphrase, setPassphrase] = useState('');
+  const [password, setPassword] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
@@ -18,6 +19,12 @@ const FileEncryptor: React.FC = () => {
   const generatePassphrase = () => {
     const randomBytes = CryptoJS.lib.WordArray.random(32).toString(CryptoJS.enc.Hex);
     return randomBytes;
+  };
+
+  // Generate a strong password
+  const generatePassword = () => {
+    const randomPassword = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Hex);
+    return randomPassword;
   };
 
   // Handle file selection
@@ -31,6 +38,7 @@ const FileEncryptor: React.FC = () => {
         size: selectedFile.size,
       });
       setPassphrase(''); // Reset passphrase when a new file is selected
+      setPassword(''); // Reset password when a new file is selected
       setFileId(null);
       setUploadError(null);
     }
@@ -44,7 +52,9 @@ const FileEncryptor: React.FC = () => {
     }
 
     const generatedPassphrase = generatePassphrase();
+    const generatedPassword = generatePassword();
     setPassphrase(generatedPassphrase);
+    setPassword(generatedPassword);
 
     // Generate IV and salt
     const ivArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
@@ -71,6 +81,7 @@ const FileEncryptor: React.FC = () => {
       formData.append('iv', ivArray);
       formData.append('salt', saltArray);
       formData.append('filename', file.name);
+      formData.append('password', generatedPassword); // Send password
 
       try {
         const response = await axios.post(
@@ -99,6 +110,7 @@ const FileEncryptor: React.FC = () => {
     setFile(null);
     setFileDetails(null);
     setPassphrase('');
+    setPassword('');
     setFileId(null);
     setUploadError(null);
     setUploading(false);
@@ -112,10 +124,10 @@ const FileEncryptor: React.FC = () => {
   return (
     <div className="container mt-5">
       <div className="container w-75">
-      <h1 className="text-center">Zero-Knowledge File Sharing</h1>
+        <h1 className="text-center">Zero-Knowledge File Sharing</h1>
         <p className="lead">
-          Select a file to securely encrypt and upload. A passphrase will be generated for the encryption. Share the
-          passphrase with the recipient to allow them to decrypt the file.
+          Select a file to securely encrypt and upload. A passphrase and password will be generated for the encryption.
+          Share them with the recipient to allow them to decrypt the file.
         </p>
         <Form>
           <Form.Group>
@@ -144,6 +156,14 @@ const FileEncryptor: React.FC = () => {
                   <td>Passphrase</td>
                   <td>
                     <strong>{passphrase}</strong>
+                  </td>
+                </tr>
+              )}
+              {password && (
+                <tr>
+                  <td>Password</td>
+                  <td>
+                    <strong>{password}</strong>
                   </td>
                 </tr>
               )}
