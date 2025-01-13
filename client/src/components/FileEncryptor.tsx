@@ -10,7 +10,6 @@ const FileEncryptor: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [fileDetails, setFileDetails] = useState<{ name: string; type: string; size: number } | null>(null);
   const [passphrase, setPassphrase] = useState('');
-  const [password, setPassword] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
@@ -31,117 +30,80 @@ const FileEncryptor: React.FC = () => {
         type: selectedFile.type || 'Unknown',
         size: selectedFile.size,
       });
-      setPassphrase('');
-      setPassword('');
+      setPassphrase(''); // Reset passphrase when a new file is selected
       setFileId(null);
       setUploadError(null);
     }
   };
 
-  // Encrypt file in chunks
-  const encryptFileInChunks = async (
-    file: File,
-    passphrase: string,
-    iv: string
-  ): Promise<string[]> => {
-    const chunkSize = 64 * 1024; // 64 KB per chunk
-    const fileReader = new FileReader();
-    const totalChunks = Math.ceil(file.size / chunkSize);
-    let currentChunk = 0;
-    const encryptedChunks: string[] = [];
-  
-    return new Promise((resolve, reject) => {
-      fileReader.onload = (event) => {
-        try {
-          const chunkData = event.target?.result as ArrayBuffer;
-          const wordArray = CryptoJS.lib.WordArray.create(chunkData);
-          const encryptedChunk = CryptoJS.AES.encrypt(wordArray, passphrase, {
-            iv: CryptoJS.enc.Base64.parse(iv),
-          }).toString();
-  
-          encryptedChunks.push(encryptedChunk); // Push each encrypted chunk
-          currentChunk++;
-  
-          if (currentChunk < totalChunks) {
-            readNextChunk();
-          } else {
-            resolve(encryptedChunks); // Resolve when all chunks are processed
-          }
-        } catch (error) {
-          reject(new Error(error instanceof Error ? error.message : String(error)));
-        }
-      };
-  
-      fileReader.onerror = (error) => {
-        reject(new Error(error instanceof Error ? error.message : String(error)));
-      };
-  
-      const readNextChunk = () => {
-        const start = currentChunk * chunkSize;
-        const end = Math.min(start + chunkSize, file.size);
-        const blob = file.slice(start, end);
-        fileReader.readAsArrayBuffer(blob);
-      };
-  
-      readNextChunk(); // Start reading chunks
-    });
-  };
-  
   // Encrypt and upload file
   const handleUpload = async () => {
     if (!file) {
       setUploadError('No file selected for encryption.');
       return;
     }
-  
+
     const generatedPassphrase = generatePassphrase();
     setPassphrase(generatedPassphrase);
-  
-    // Generate IV
+
+    // Generate IV and salt
     const ivArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
-  
-    setUploading(true);
-    setUploadError(null);
-  
-    try {
-      const encryptedChunks = await encryptFileInChunks(file, generatedPassphrase, ivArray);
-  
-      // Send as JSON payload
-      const payload = {
-        chunks: encryptedChunks,
-        iv: ivArray,
-        filename: file.name,
-      };
-  
-      const response = await axios.post(
-        `${process.env.REACT_APP_BACKEND_URL}/api/upload`,
-        payload,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-  
-      setFileId(response.data.fileId);
-      setPassword(response.data.password); // Store password returned by backend
-    } catch (error) {
-      setUploadError('Failed to upload the file. Please try again.');
-    } finally {
-      setUploading(false);
-    }
+    const saltArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const fileContent = new Uint8Array(reader.result as ArrayBuffer);
+
+      // Encrypt binary data
+      const wordArray = CryptoJS.lib.WordArray.create(fileContent);
+      const encrypted = CryptoJS.AES.encrypt(wordArray, generatedPassphrase, {
+        iv: CryptoJS.enc.Base64.parse(ivArray),
+      }).toString();
+
+      const encryptedBlob = new Blob([encrypted], { type: 'application/octet-stream' });
+
+      // Upload the encrypted file
+      setUploading(true);
+      setUploadError(null);
+
+      const formData = new FormData();
+      formData.append('file', encryptedBlob, file.name);
+      formData.append('iv', ivArray);
+      formData.append('salt', saltArray);
+      formData.append('filename', file.name);
+
+      try {
+        const response = await axios.post(
+          `${process.env.REACT_APP_BACKEND_URL}/api/upload`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+
+        setFileId(response.data.fileId);
+      } catch (error) {
+        setUploadError('Failed to upload the file. Please try again.');
+      } finally {
+        setUploading(false);
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
   };
-  
+
   // Reset page state
   const handleReset = () => {
     setFile(null);
     setFileDetails(null);
     setPassphrase('');
-    setPassword('');
     setFileId(null);
     setUploadError(null);
     setUploading(false);
 
+    // Clear file input value
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -150,10 +112,16 @@ const FileEncryptor: React.FC = () => {
   return (
     <div className="container mt-5">
       <div className="container w-75">
-        <h1 className="text-center">Zero-Knowledge File Sharing</h1>
+      <nav aria-label="breadcrumb">
+        <ol className="breadcrumb">
+          <li className="breadcrumb-item active" aria-current="page">Home</li>
+          <li className="breadcrumb-item"><a href="/decrypt">Decrypt</a></li>
+        </ol>
+      </nav>
+      <h1 className="text-center">Zero-Knowledge File Sharing</h1>
         <p className="lead">
-          Select a file to securely encrypt and upload. A passphrase and password will be generated. Share them with the
-          recipient to allow decryption.
+          Select a file to securely encrypt and upload. A passphrase will be generated for the encryption. Share the
+          passphrase with the recipient to allow them to decrypt the file.
         </p>
         <Form>
           <Form.Group>
@@ -161,6 +129,7 @@ const FileEncryptor: React.FC = () => {
           </Form.Group>
         </Form>
 
+        {/* File Details */}
         {fileDetails && (
           <Table striped bordered hover className="mt-3">
             <tbody>
@@ -184,14 +153,6 @@ const FileEncryptor: React.FC = () => {
                   </td>
                 </tr>
               )}
-              {password && (
-                <tr>
-                  <td>Password</td>
-                  <td>
-                    <strong>{password}</strong>
-                  </td>
-                </tr>
-              )}
               {fileId && (
                 <tr>
                   <td>Shareable Link</td>
@@ -206,6 +167,7 @@ const FileEncryptor: React.FC = () => {
           </Table>
         )}
 
+        {/* Conditional Button Rendering */}
         {fileDetails && (
           <div className="text-center">
             {fileId ? (
@@ -220,6 +182,7 @@ const FileEncryptor: React.FC = () => {
           </div>
         )}
 
+        {/* Error Message */}
         {uploadError && (
           <div className="mt-3">
             <p className="text-danger">{uploadError}</p>
