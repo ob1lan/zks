@@ -22,12 +22,15 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
   try {
     const { iv, filename, chunks } = req.body;
 
+    // Validate required fields
     if (!iv || !filename || !chunks) {
       res.status(400).json({ error: 'Missing required fields' });
       return;
     }
 
-    const encryptedChunks = JSON.parse(chunks); // Parse the encrypted chunks
+    // Use chunks directly as it's already a JSON string
+    const encryptedChunks: string[] = Array.isArray(chunks) ? chunks : JSON.parse(chunks);
+
     const ciphertext = encryptedChunks.join(''); // Combine all chunks into one string
 
     const fileId = uuidv4();
@@ -75,7 +78,7 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     const { fileId, passphrase, password } = req.body;
 
     if (!fileId || !passphrase || !password) {
-      res.status(400).json({ error: 'Missing fileId, passphrase, or password' });
+      res.status(400).json({ error: 'Missing required fields' });
       return;
     }
 
@@ -103,17 +106,23 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    // Read the ciphertext from the S3 stream
     const stream = data.Body as Readable;
     const chunks: Buffer[] = [];
     for await (const chunk of stream) {
       chunks.push(chunk);
     }
-    const encryptedContent = Buffer.concat(chunks).toString('base64'); // Read Base64 data
+    const encryptedContent = Buffer.concat(chunks).toString('base64'); // Read as Base64
 
-    // Decrypt binary content
+    // Decrypt the content
     const decryptedWordArray = CryptoJS.AES.decrypt(encryptedContent, passphrase, {
       iv: CryptoJS.enc.Base64.parse(fileMetadata.iv),
     });
+
+    if (!decryptedWordArray) {
+      res.status(400).json({ error: 'Decryption failed. Invalid passphrase or corrupted file.' });
+      return;
+    }
 
     const decryptedBytes = CryptoJS.enc.Utf8.stringify(decryptedWordArray);
     const decryptedBuffer = Buffer.from(decryptedBytes, 'utf8');
@@ -127,3 +136,4 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ error: 'Server error' });
   }
 };
+

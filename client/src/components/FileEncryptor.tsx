@@ -106,17 +106,19 @@ const FileEncryptor: React.FC = () => {
     try {
       const encryptedChunks = await encryptFileInChunks(file, generatedPassphrase, ivArray);
   
-      const formData = new FormData();
-      formData.append('chunks', JSON.stringify(encryptedChunks)); // Send encrypted chunks as JSON
-      formData.append('iv', ivArray);
-      formData.append('filename', file.name);
+      // Send as JSON payload
+      const payload = {
+        chunks: encryptedChunks,
+        iv: ivArray,
+        filename: file.name,
+      };
   
       const response = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/upload`,
-        formData,
+        payload,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'application/json',
           },
         }
       );
