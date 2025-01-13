@@ -20,22 +20,15 @@ const metadataStore: Record<string, EncryptedMetadata> = {};
 // controllers/fileController.ts
 export const uploadFile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { iv, salt, filename } = req.body;
-    const ciphertext = req.file?.buffer;
+    const { iv, filename, chunks } = req.body;
 
-    // Validate required fields
-    if (!iv || !salt || !filename || !ciphertext) {
-      res.status(400).json({
-        error: "Missing required fields",
-        details: {
-          iv: iv ? "Present" : "Missing",
-          salt: salt ? "Present" : "Missing",
-          filename: filename ? "Present" : "Missing",
-          file: ciphertext ? "Present" : "Missing",
-        },
-      });
+    if (!iv || !filename || !chunks) {
+      res.status(400).json({ error: 'Missing required fields' });
       return;
     }
+
+    const encryptedChunks = JSON.parse(chunks); // Parse the encrypted chunks
+    const ciphertext = encryptedChunks.join(''); // Combine all chunks into one string
 
     const fileId = uuidv4();
     const password = uuidv4(); // Generate a strong random password
@@ -44,17 +37,17 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
     const uploadParams = {
       Bucket: BUCKET_NAME,
       Key: `uploads/${fileId}`,
-      Body: ciphertext,
+      Body: Buffer.from(ciphertext, 'utf8'), // Store ciphertext as UTF-8 encoded data
     };
 
     await s3Client.send(new PutObjectCommand(uploadParams));
 
-    metadataStore[fileId] = { iv, salt, filename, password: hashedPassword };
+    metadataStore[fileId] = { iv, salt: '', filename, password: hashedPassword };
 
-    res.json({ fileId, password }); // Return the password to the user
+    res.json({ fileId, password });
   } catch (error) {
-    console.error("Upload error:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -115,19 +108,19 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     for await (const chunk of stream) {
       chunks.push(chunk);
     }
-    const encryptedContent = Buffer.concat(chunks).toString("utf8");
+    const encryptedContent = Buffer.concat(chunks).toString('utf8');
 
     // Decrypt binary content
     const decryptedWordArray = CryptoJS.AES.decrypt(encryptedContent, passphrase, {
       iv: CryptoJS.enc.Base64.parse(fileMetadata.iv),
     });
 
-    const decryptedBytes = CryptoJS.enc.Base64.stringify(decryptedWordArray);
-    const decryptedBuffer = Buffer.from(decryptedBytes, "base64");
+    const decryptedString = CryptoJS.enc.Utf8.stringify(decryptedWordArray);
+    const decryptedBuffer = Buffer.from(decryptedString, 'utf8');
 
     res.json({
       filename: fileMetadata.filename,
-      content: decryptedBuffer.toString("base64"), // Send Base64-encoded binary content
+      content: decryptedBuffer.toString('base64'), // Send Base64-encoded binary content
     });
   } catch (error) {
     console.error("Decryption error:", error);

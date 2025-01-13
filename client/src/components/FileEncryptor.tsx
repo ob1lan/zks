@@ -39,13 +39,17 @@ const FileEncryptor: React.FC = () => {
   };
 
   // Encrypt file in chunks
-  const encryptFileInChunks = async (file: File, passphrase: string, iv: string): Promise<string> => {
+  const encryptFileInChunks = async (
+    file: File,
+    passphrase: string,
+    iv: string
+  ): Promise<string[]> => {
     const chunkSize = 64 * 1024; // 64 KB per chunk
     const fileReader = new FileReader();
     const totalChunks = Math.ceil(file.size / chunkSize);
     let currentChunk = 0;
-    let encryptedChunks = '';
-
+    const encryptedChunks: string[] = [];
+  
     return new Promise((resolve, reject) => {
       fileReader.onload = (event) => {
         try {
@@ -54,60 +58,59 @@ const FileEncryptor: React.FC = () => {
           const encryptedChunk = CryptoJS.AES.encrypt(wordArray, passphrase, {
             iv: CryptoJS.enc.Base64.parse(iv),
           }).toString();
-
-          encryptedChunks += encryptedChunk;
+  
+          encryptedChunks.push(encryptedChunk); // Push each encrypted chunk
           currentChunk++;
-
+  
           if (currentChunk < totalChunks) {
             readNextChunk();
           } else {
-            resolve(encryptedChunks); // All chunks processed
+            resolve(encryptedChunks); // Resolve when all chunks are processed
           }
         } catch (error) {
           reject(new Error(error instanceof Error ? error.message : String(error)));
         }
       };
-
+  
       fileReader.onerror = (error) => {
         reject(new Error(error instanceof Error ? error.message : String(error)));
       };
-
+  
       const readNextChunk = () => {
         const start = currentChunk * chunkSize;
         const end = Math.min(start + chunkSize, file.size);
         const blob = file.slice(start, end);
         fileReader.readAsArrayBuffer(blob);
       };
-
+  
       readNextChunk(); // Start reading chunks
     });
   };
-
+  
   // Encrypt and upload file
   const handleUpload = async () => {
     if (!file) {
       setUploadError('No file selected for encryption.');
       return;
     }
-
+  
     const generatedPassphrase = generatePassphrase();
     setPassphrase(generatedPassphrase);
-
+  
     // Generate IV
     const ivArray = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64);
-
+  
     setUploading(true);
     setUploadError(null);
-
+  
     try {
-      const encryptedContent = await encryptFileInChunks(file, generatedPassphrase, ivArray);
-      const encryptedBlob = new Blob([encryptedContent], { type: 'application/octet-stream' });
-
+      const encryptedChunks = await encryptFileInChunks(file, generatedPassphrase, ivArray);
+  
       const formData = new FormData();
-      formData.append('file', encryptedBlob, file.name);
+      formData.append('chunks', JSON.stringify(encryptedChunks)); // Send encrypted chunks as JSON
       formData.append('iv', ivArray);
       formData.append('filename', file.name);
-
+  
       const response = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/upload`,
         formData,
@@ -117,7 +120,7 @@ const FileEncryptor: React.FC = () => {
           },
         }
       );
-
+  
       setFileId(response.data.fileId);
       setPassword(response.data.password); // Store password returned by backend
     } catch (error) {
@@ -126,7 +129,7 @@ const FileEncryptor: React.FC = () => {
       setUploading(false);
     }
   };
-
+  
   // Reset page state
   const handleReset = () => {
     setFile(null);
