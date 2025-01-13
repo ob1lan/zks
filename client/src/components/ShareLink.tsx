@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Form, Alert } from 'react-bootstrap';
 import axios from 'axios';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const ShareLink: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const fileId = searchParams.get('fileId') ?? '';
 
   const [passphrase, setPassphrase] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
+
+  // Redirect if fileId is missing
+  useEffect(() => {
+    if (!fileId) {
+      navigate('/', { replace: true });
+    }
+  }, [fileId, navigate]);
 
   const handleDecrypt = async () => {
     setError(null);
@@ -35,15 +43,15 @@ const ShareLink: React.FC = () => {
 
   const handleDownload = () => {
     if (!decryptedContent || !filename) return;
-  
+
     // Decode Base64 content into binary
     const binaryContent = atob(decryptedContent);
     const binaryArray = new Uint8Array(binaryContent.length);
     for (let i = 0; i < binaryContent.length; i++) {
       binaryArray[i] = binaryContent.charCodeAt(i);
     }
-  
-    const blob = new Blob([binaryArray], { type: 'application/pdf' }); // Adjust MIME type based on the file
+
+    const blob = new Blob([binaryArray], { type: 'application/octet-stream' }); // Adjust MIME type based on the file
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -52,18 +60,18 @@ const ShareLink: React.FC = () => {
     a.click();
     document.body.removeChild(a);
   };
-  
+
   return (
     <div className="container mt-5">
       <div className="container w-75">
-      <nav aria-label="breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/">Home</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Decrypt</li>
-        </ol>
-      </nav>
-      <h1 className="text-center">Decrypt and Download File</h1>
-      <p className="lead">
+        <nav aria-label="breadcrumb">
+          <ol className="breadcrumb">
+            <li className="breadcrumb-item"><a href="/">Home</a></li>
+            <li className="breadcrumb-item active" aria-current="page">Decrypt</li>
+          </ol>
+        </nav>
+        <h1 className="text-center">Decrypt and Download File</h1>
+        <p className="lead">
           Enter the passphrase to decrypt and download the file.
         </p>
         <Form>

@@ -112,12 +112,6 @@ const FileEncryptor: React.FC = () => {
   return (
     <div className="container mt-5">
       <div className="container w-75">
-      <nav aria-label="breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item active" aria-current="page">Home</li>
-          <li className="breadcrumb-item"><a href="/decrypt">Decrypt</a></li>
-        </ol>
-      </nav>
       <h1 className="text-center">Zero-Knowledge File Sharing</h1>
         <p className="lead">
           Select a file to securely encrypt and upload. A passphrase will be generated for the encryption. Share the
