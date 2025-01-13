@@ -112,14 +112,15 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     for await (const chunk of stream) {
       chunks.push(chunk);
     }
-    const encryptedContent = Buffer.concat(chunks).toString('base64'); // Read as Base64
+    const encryptedContent = Buffer.concat(chunks).toString('base64'); // Base64-encoded ciphertext
 
     // Decrypt the content
     const decryptedWordArray = CryptoJS.AES.decrypt(encryptedContent, passphrase, {
       iv: CryptoJS.enc.Base64.parse(fileMetadata.iv),
     });
 
-    if (!decryptedWordArray) {
+    // Ensure decryption succeeded
+    if (!decryptedWordArray.sigBytes || decryptedWordArray.sigBytes <= 0) {
       res.status(400).json({ error: 'Decryption failed. Invalid passphrase or corrupted file.' });
       return;
     }
@@ -136,4 +137,3 @@ export const decryptFile = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ error: 'Server error' });
   }
 };
-
