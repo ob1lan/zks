@@ -33,30 +33,47 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
 export const decryptFile = async (req: Request, res: Response): Promise<void> => {
   try {
     const { fileId, passphrase } = req.body;
+
+    // Retrieve metadata
     const metadata = metadataStore[fileId];
+    console.log('Metadata:', metadata);
+    
     if (!metadata) {
       res.status(404).json({ error: 'File metadata not found.' });
       return;
     }
 
+    // Download the encrypted file from S3
     const downloadParams = { Bucket: BUCKET_NAME, Key: `uploads/${fileId}` };
     const { Body } = await s3Client.send(new GetObjectCommand(downloadParams));
 
-    const chunks: Buffer[] = [];
-    for await (const chunk of Body as AsyncIterable<Buffer>) {
-      chunks.push(chunk);
+    if (!Body) {
+      res.status(404).json({ error: 'File not found.' });
+      return;
     }
 
-    const decryptedChunks = chunks.map(chunk =>
-      CryptoJS.AES.decrypt(chunk.toString('utf8'), passphrase, {
-        iv: CryptoJS.enc.Hex.parse(metadata.iv),
-      }).toString(CryptoJS.enc.Utf8)
-    );
+    // Accumulate the encrypted content from the stream
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of Body as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk);
+    }
+    const encryptedContent = Buffer.concat(chunks).toString();
 
-    res.json({ content: decryptedChunks.join(''), filename: metadata.filename });
-  } catch (err) {
-    console.error('Decryption error:', err);
+    // Decrypt the content
+    const decrypted = CryptoJS.AES.decrypt(encryptedContent, passphrase, {
+      iv: CryptoJS.enc.Hex.parse(metadata.iv),
+    });
+
+    const decryptedContent = Buffer.from(decrypted.toString(CryptoJS.enc.Base64), 'base64');
+
+    // Set headers for file download
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(metadata.filename)}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+
+    // Send the decrypted file
+    res.end(decryptedContent);
+  } catch (error) {
+    console.error('Decryption error:', error);
     res.status(500).json({ error: 'Decryption failed.' });
   }
 };
-

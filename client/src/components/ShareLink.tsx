@@ -10,55 +10,40 @@ const ShareLink: React.FC = () => {
   const [password, setPassword] = useState(''); // Password state
   const [passphrase, setPassphrase] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
 
   const handleDecrypt = async () => {
-    setError(null);
-    setDecryptedContent(null);
-
     try {
-      if (!password) {
-        setError('Password is required to decrypt the file.');
-        return;
-      }
-
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/decrypt`, {
-        fileId,
-        passphrase,
-        password, // Include password in the decryption request
-      });
-
-      setFilename(response.data.filename);
-      setDecryptedContent(response.data.content);
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/decrypt`,
+        { fileId, passphrase, password },
+        { responseType: 'blob' }
+      );
+  
+      // Extract the filename from the Content-Disposition header
+      const contentDisposition = response.headers['content-disposition'];
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      console.log('Filename match:', filenameMatch);
+      const extractedFilename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : 'download';
+  
+      setFilename(extractedFilename);
+  
+      // Create a blob and trigger download
+      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = extractedFilename; // Use the extracted filename
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  
+      setError(null); // Clear errors on success
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        setError(error.response?.data.error || 'Decryption failed.');
-      } else {
-        setError('An unexpected error occurred.');
-      }
+      console.error('Decryption failed:', error);
+      setError('Decryption failed. Please check your passphrase and password.');
     }
   };
-
-  const handleDownload = () => {
-    if (!decryptedContent || !filename) return;
-
-    // Decode Base64 content into binary
-    const binaryContent = atob(decryptedContent);
-    const binaryArray = new Uint8Array(binaryContent.length);
-    for (let i = 0; i < binaryContent.length; i++) {
-      binaryArray[i] = binaryContent.charCodeAt(i);
-    }
-
-    const blob = new Blob([binaryArray], { type: 'application/octet-stream' }); // Adjust MIME type based on the file
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
+  
 
   return (
     <div className="container mt-5">
@@ -95,7 +80,7 @@ const ShareLink: React.FC = () => {
               Decrypt File
             </Button>
           </div>
-        </Form>    
+        </Form>
 
         {error && (
           <Alert variant="danger" className="mt-3">
@@ -103,11 +88,10 @@ const ShareLink: React.FC = () => {
           </Alert>
         )}
 
-        {decryptedContent && (
-          <div className="mt-3 text-center">
-            <Alert variant="success">File decrypted successfully!</Alert>
-            <Button className="mt-3 btn-lg" onClick={handleDownload}>Download File</Button>
-          </div>
+        {filename && !error && (
+          <Alert variant="success" className="mt-3">
+            File <strong>{filename}</strong> decrypted and downloaded successfully!
+          </Alert>
         )}
       </div>
     </div>
