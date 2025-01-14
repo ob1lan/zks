@@ -1,36 +1,21 @@
-// routes/fileRoutes.ts
-import { Router, Response, NextFunction } from 'express';
+import express from 'express';
+import { uploadFile, decryptFile } from '../controllers/fileController';
 import multer from 'multer';
-import { uploadFile, getFile, decryptFile } from '../controllers/fileController';
 
-const router = Router();
-const upload = multer({
-    limits: { fileSize: 100 * 1024 * 1024 }, // Limit file size to 100MB
-});
+const upload = multer(); // Set up multer for file uploads
+const router = express.Router();
 
-// Middleware to check for fileId
-interface RequestWithFileId extends Express.Request {
-    body: {
-        fileId?: string;
-    };
-}
-
-const requireFileId = async (req: RequestWithFileId, res: Response, next: NextFunction): Promise<void> => {
-    const { fileId } = req.body;
-    if (!fileId) {
-        res.status(403).json({ error: 'fileId is required' });
-        return;
-    }
+// Ensure the file ID exists in the request (sample middleware)
+const requireFileId = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!req.body.fileId) {
+    res.status(400).json({ error: 'File ID is required.' });
+  } else {
     next();
+  }
 };
 
-// POST /api/upload
-router.post('/upload', upload.single('file'), uploadFile);
-
-// GET /api/file/:fileId
-router.get('/file/:fileId', getFile);
-
-// POST /api/decrypt
-router.post('/decrypt', requireFileId, decryptFile);
+// Routes
+router.post('/upload', upload.single('file'), uploadFile); // Upload route
+router.post('/decrypt', requireFileId, decryptFile); // Decrypt route
 
 export default router;
