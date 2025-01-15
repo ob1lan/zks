@@ -86,7 +86,7 @@ npm start
 - POST /api/decrypt
     - Requires file ID and decryption passphrase.
 
-### Tech Stack
+## Tech Stack
 - Frontend: React, React-Bootstrap
 - Backend: Node.js, Express
 - Storage: AWS S3
