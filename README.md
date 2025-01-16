@@ -3,7 +3,7 @@ ZKS is a web-based application for securely encrypting and sharing files. It lev
 
 ## Features
 ### Client (Frontend)
-- User-friendly interface built with React and React Router.
+- User-friendly interface built with React and Bootstrap.
 - File encryption with customizable parameters.
 - Shareable links for secure file access.
 
